@@ -1,26 +1,32 @@
 #include <iostream>
 #include <fstream>
 #include <cmath>
+#include <cstdlib>
+#include <ctime>   
 
-using namespace std;  // Utilisation du namespace std pour éviter de répéter 'std::'
+using namespace std;
 
-// Fonction d'activation sigmoïde
+// Sigmoid activation function
 float activationFunction(float x) {
-    return 1.0 / (1.0 + exp(-x));
+    return 1.0f / (1.0f + exp(-x));
 }
 
-// Calcul de la sortie du neurone
+// Compute the neuron's output
 float computeOutput(float x1, float x2, float w1, float w2, float bias) {
     return activationFunction(x1 * w1 + x2 * w2 + bias);
 }
 
-// Entraînement du neurone avec descente de gradient
+// Train the neuron with gradient descent
 void trainNeuron(float data[][3], int epochs, float learningRate, ofstream& outputFile) {
-    float w1 = 0.0, w2 = 0.0, bias = 0.0;
+    // Initialize weights and bias to small random values
+    float w1 = static_cast<float>(rand()) / RAND_MAX - 0.5f;
+    float w2 = static_cast<float>(rand()) / RAND_MAX - 0.5f;
+    float bias = static_cast<float>(rand()) / RAND_MAX - 0.5f;
+
     float y, y_d, error, totalError;
 
     for (int epoch = 0; epoch < epochs; ++epoch) {
-        totalError = 0.0;
+        totalError = 0.0f;
 
         for (int i = 0; i < 4; ++i) {
             float x1 = data[i][0];
@@ -32,38 +38,45 @@ void trainNeuron(float data[][3], int epochs, float learningRate, ofstream& outp
             error = y_d - y;
             totalError += pow(error, 2);
 
-            // Mise à jour des poids avec dérivée de la sigmoïde
-            w1 += learningRate * error * y * (1 - y) * x1;
-            w2 += learningRate * error * y * (1 - y) * x2;
-            bias += learningRate * error * y * (1 - y);
+            // Update weights and bias with sigmoid derivative
+            float delta = learningRate * error * y * (1 - y);
+            w1 += delta * x1;
+            w2 += delta * x2;
+            bias += delta;
 
-            outputFile << "Epoch: " << epoch + 1 << ", y: " << y << ", y_d: " << y_d << ", CF: " << totalError
-                << ", w1: " << w1 << ", w2: " << w2 << endl;
+            outputFile << "Epoch: " << epoch + 1 << ", y: " << y << ", y_d: " << y_d
+                << ", CF: " << totalError << ", w1: " << w1 << ", w2: " << w2 << endl;
         }
 
-        if (totalError == 0) break;  // Arrêter si l'erreur totale est nulle
+        if (totalError < 0.001f) break; // Stop if total error is small enough
     }
+
+    // Output the final weights and bias
+    outputFile << "Final weights and bias: w1 = " << w1 << ", w2 = " << w2 << ", bias = " << bias << endl;
 }
 
 int main() {
-    // Données de la table AND
-    float data[4][3] = { {0, 0, 0}, {0, 1, 0}, {1, 0, 0}, {1, 1, 1} };
-    int epochs = 100;
-    float learningRate = 0.1;
+    // Initialize random seed
+    srand(static_cast<unsigned int>(time(0)));
 
-    // Ouvrir un fichier pour écrire les résultats
+    // AND truth table data
+    float data[4][3] = { {0, 0, 0}, {0, 1, 0}, {1, 0, 0}, {1, 1, 1} };
+    int epochs = 10000;
+    float learningRate = 0.1f;
+
+    // Open a file to write results
     ofstream outputFile("output_results.txt");
 
     if (!outputFile.is_open()) {
-        cout << "Erreur d'ouverture du fichier de sortie !" << endl;
+        cout << "Error opening output file!" << endl;
         return -1;
     }
 
-    // Entraîner le neurone
+    // Train the neuron
     trainNeuron(data, epochs, learningRate, outputFile);
 
     outputFile.close();
-    cout << "Entraînement terminé et résultats enregistrés dans output_results.txt\n";
+    cout << "Training completed. Results saved to output_results.txt\n";
 
     return 0;
 }
